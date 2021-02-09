@@ -1,39 +1,42 @@
-import csv
 import glob
-from datetime import datetime
-import os
+import csv
 
 
-class PriceLoader:
-    def __init__(self):
-        self.directory = os.path.dirname(__file__) + '/prices/{}/{}.csv'
-        self.exchanges = ['NASDAQ', 'AMEX', 'FOREX', 'NYSE', 'OTCBB']
-        self.glob = 'prices/{}/*.csv'
+class Source:
+    def __init__(self, directory, file_type='.csv'):
+        self.directory = directory
+        self.file_type = file_type
 
-    def format_row(self, row):
-        d, o, h, l, c, v = row
-        date = datetime.strptime(d, '%d-%b-%Y')
-        return date, float(o), float(h), float(l), float(c), int(v)
+        self.glob_string = f'{self.directory}*{self.file_type}'
+        self.data = {}
 
-    def load(self, exchange, symbol):
-        file = self.directory.format(exchange, symbol)
+    @property
+    def instrument_filenames(self):
+        return glob.glob(self.glob_string)
 
-        prices = []
-        with open(file) as f:
+    @property
+    def instrument_names(self):
+        return [i[len(self.directory):-len(self.file_type)] for i in self.instrument_filenames]
+
+    def format_row(self, *args):
+        raise NotImplementedError
+
+    def __getitem__(self, key):
+        # Check the cache
+        item = self.data.get(key)
+        if item is not None:
+            return item
+
+        # Optimistically open the file. If it isn't there, the error is informative.
+        filename = f'{self.directory}{key}{self.file_type}'
+        with open(filename) as f:
+            item = []
             reader = csv.reader(f)
             for row in reader:
-                prices.append(self.format_row(row))
+                _row = self.format_row(row)
+                item.append(_row)
 
-        return prices
+        self.data[key] = item
 
-    def symbols(self, exchange):
-        files = glob.glob(self.glob.format(exchange))
+        return item
 
-        symbols = []
-        for file in files:
-            file = file.replace('prices/{}/'.format(exchange), '')
-            file = file.replace('.csv', '')
-            symbols.append(file)
-
-        symbols.sort()
-        return symbols
