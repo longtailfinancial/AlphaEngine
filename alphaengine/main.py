@@ -2,6 +2,7 @@ import glob
 import csv
 from datetime import datetime
 
+
 class Source:
     def __init__(self, directory, file_type='.csv'):
         self.directory = directory
