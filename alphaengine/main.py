@@ -44,15 +44,15 @@ class Source:
 
 class EODDataSource(Source):
     def __init__(self, *args, **kwargs):
-        self.datetime_format = '%m-%b-%Y'
+        self.datetime_format = '%d-%b-%Y'
         super().__init__(*args, **kwargs)
-
+        
     def format_row(self, *args):
-        date = datetime.strptime(args[0], self.datetime_format)
-        o = float(args[1])
-        h = float(args[2])
-        l = float(args[3])
-        c = float(args[4])
-        v = int(args[5])
+        date = datetime.strptime(args[0][0], self.datetime_format)
+        o = float(args[0][1])
+        h = float(args[0][2])
+        l = float(args[0][3])
+        c = float(args[0][4])
+        v = int(args[0][5])
 
         return [date.day, date.month, date.year, o, h, l, c, v]
