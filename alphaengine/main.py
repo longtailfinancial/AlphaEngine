@@ -1,52 +1,22 @@
-import glob
+import numpy as np
 import csv
 from datetime import datetime
-import numpy as np
-
-class Source:
-    def __init__(self, directory, file_type='.csv'):
-        self.directory = directory
-        self.file_type = file_type
-
-        self.glob_string = f'{self.directory}*{self.file_type}'
-        self.data = {}
-
-    @property
-    def instrument_filenames(self):
-        return glob.glob(self.glob_string)
-
-    @property
-    def instrument_names(self):
-        return [i[len(self.directory):-len(self.file_type)] for i in self.instrument_filenames]
-
-    def format_row(self, *args):
-        raise NotImplementedError
-
-    def load_source(self, location):
-        raise NotImplementedError
-
-    def __getitem__(self, key):
-        # Check the cache
-        item = self.data.get(key)
-        if item is not None:
-            return item
-
-        # Optimistically open the file. If it isn't there, the error is informative.
-        filename = f'{self.directory}{key}{self.file_type}'
-
-        item = self.load_source(filename)
-        self.data[key] = item
-
-        return item
 
 
-class EODDataSource(Source):
-    def __init__(self, *args, **kwargs):
+# The basic CSV instrument. We'll abstract this later when we need it
+class FileInstrument:
+    def __init__(self, filename, load=True):
         self.datetime_format = '%d-%b-%Y'
-        super().__init__(*args, **kwargs)
+        self.column_names = ['day', 'month', 'year', 'open', 'high', 'low', 'close', 'volume', 'forward_returns']
+        self.column_set = set(self.column_names)
 
-    def load_source(self, location):
-        with open(location) as f:
+        self.data = None
+
+        if load:
+            self.load_file(filename)
+
+    def load_file(self, filename):
+        with open(filename) as f:
             item = []
             reader = csv.reader(f)
             for row in reader:
@@ -54,11 +24,10 @@ class EODDataSource(Source):
                 item.append(_row)
 
         item = np.array(item)
-        returns = np.expand_dims(np.diff(item[:, -2], prepend=0), axis=1)
+        returns = np.expand_dims(np.diff(item[:, -2], append=item[:, -2][-1]), axis=1)
 
         items_with_returns = np.hstack((item, returns))
-
-        return items_with_returns
+        self.data = items_with_returns
 
     def format_row(self, *args):
         date = datetime.strptime(args[0], self.datetime_format)
@@ -69,3 +38,20 @@ class EODDataSource(Source):
         v = int(args[5])
 
         return [date.day, date.month, date.year, o, h, l, c, v]
+
+    def attach_feature(self, feature, name):
+        self.column_set.add(name)  # this will fail if the feature already exists
+        self.column_names.append(name)
+
+        f = np.expand_dims(feature, axis=1)
+        self.data = np.hstack((self.data, f))
+
+    def __getitem__(self, key):
+        if type(key) == str:
+            idx = self.column_names.index(key)
+            return self.data[:, idx]
+
+        return self.data.__getitem__(key)
+
+    def __repr__(self):
+        return self.data.__repr__()
