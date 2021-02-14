@@ -1,3 +1,8 @@
+import glob
+import csv
+from datetime import datetime
+import numpy as np
+
 class Source:
     def __init__(self, directory, file_type='.csv'):
         self.directory = directory
@@ -13,6 +18,9 @@ class Source:
     @property
     def instrument_names(self):
         return [i[len(self.directory):-len(self.file_type)] for i in self.instrument_filenames]
+
+    def format_row(self, *args):
+        raise NotImplementedError
 
     def load_source(self, location):
         raise NotImplementedError
