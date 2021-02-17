@@ -1,5 +1,5 @@
 [package]
-name = "python_binding"
+name = "ack"
 version = "0.1.0"
 authors = ["Avery Wagar <ajmw.subs@gmail.com>"]
 edition = "2018"
