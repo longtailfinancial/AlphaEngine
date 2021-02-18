@@ -19,11 +19,11 @@ use std::io::Read;
 
 #[derive(Debug, Deserialize)]
 struct Record {
-    date: NaiveDate,
-    open: f32,
-    high: f32,
-    low: f32,
-    close: f32,
+    date: String,
+    open: f64,
+    high: f64,
+    low: f64,
+    close: f64,
     volume: usize,
 }
 
@@ -63,16 +63,16 @@ async fn load_files<P: Into<String>>(
                         .ends_with(".csv")
                 })
         {
-            yield load_file(entry).await;
+            let file_name = entry.file_name().to_string_lossy().to_string();
+            let symbol = file_name.split(".csv").next().unwrap_or("N/A").to_string();
+
+            yield load_file(symbol, entry.path()).await;
         }
     }
 }
 
-async fn load_file(entry: walkdir::DirEntry) -> Result<(String, Vec<Record>), tokio::io::Error> {
-    let file_name = entry.file_name().to_string_lossy().to_string();
-    let symbol = file_name.split(".csv").next().unwrap_or("N/A");
-
-    let file = File::open(entry.path()).await?;
+async fn load_file(symbol: String, path: &std::path::Path) -> Result<(String, Vec<Record>), tokio::io::Error> {
+    let file = File::open(path).await?;
 
     let mut std_file = file.into_std().await;
 
@@ -106,4 +106,18 @@ async fn load_file(entry: walkdir::DirEntry) -> Result<(String, Vec<Record>), to
         .collect::<Vec<_>>();
 
     Ok((symbol.to_string(), records))
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::load_file;
+
+    #[tokio::test]
+    async fn test_load_csv() {
+        let result = load_file("AAPL".to_string(), std::path::Path::new("./test.csv")).await;
+        assert!(result.is_ok());
+        let (symbol,records) = result.unwrap();
+
+        assert_eq!(symbol, "AAPL".to_string());
+    }
 }
