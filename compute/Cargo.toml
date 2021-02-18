@@ -2,5 +2,5 @@
 members = [
 "python_binding",
 "compute_kernel",
-"scratch"
+"loader"
 ]

@@ -6,9 +6,9 @@ use walkdir::WalkDir;
 
 use async_stream::stream;
 use futures_util::future::join_all;
-use futures_util::pin_mut;
-use futures_util::stream::Stream;
-use futures_util::stream::StreamExt;
+pub use futures_util::pin_mut;
+pub use futures_util::stream::Stream;
+pub use futures_util::stream::StreamExt;
 
 use std::collections::HashMap;
 use std::error::Error;
@@ -18,36 +18,34 @@ use tokio::io::{AsyncRead, AsyncWrite};
 use std::io::Read;
 
 #[derive(Debug, Deserialize)]
-struct Record {
-    date: String,
-    open: f64,
-    high: f64,
-    low: f64,
-    close: f64,
-    volume: usize,
+pub struct Record {
+    pub date: String,
+    pub open: f64,
+    pub high: f64,
+    pub low: f64,
+    pub close: f64,
+    pub volume: usize,
 }
 
-#[tokio::main]
-async fn main() {
-    // let stream = load_files("../../../prices").await;
-    let stream = load_files(".").await;
-    pin_mut!(stream);
+// #[tokio::main]
+// async fn main() {
+//     let stream = load_files("../../../prices/").await;
+//     pin_mut!(stream);
 
-    while let Some(file) = stream.next().await {
-        match file {
-            Ok((symbol, records)) => {
-                // println!(
-                //     "\n--- {} ---\n{:?}",
-                //     symbol,
-                //     records.iter().take(5).collect::<Vec<_>>()
-                // );
-            }
-            Err(why) => eprintln!("Error: {:?}", why),
-        }
-    }
-}
+//     while let Some(file) = stream.next().await {
+//         match file {
+//             Ok((symbol, records)) => {
+//                 // println!(
+//                 //     "--- {} ---",
+//                 //     symbol
+//                 // );
+//             }
+//             Err(why) => eprintln!("Error: {:?}", why),
+//         }
+//     }
+// }
 
-async fn load_files<P: Into<String>>(
+pub async fn load_files<P: Into<String>>(
     path: P,
 ) -> impl Stream<Item = Result<(String, Vec<Record>), tokio::io::Error>> {
     stream! {
@@ -73,27 +71,17 @@ async fn load_files<P: Into<String>>(
 
 async fn load_file(symbol: String, path: &std::path::Path) -> Result<(String, Vec<Record>), tokio::io::Error> {
     let file = File::open(path).await?;
+    let std_file = file.into_std().await;
 
-    let mut std_file = file.into_std().await;
-
-    let mut string = String::new();
-
-    std_file.read_to_string(&mut string)?;
-
-    print!("Raw CSV: {}", string);
-
-    let mut rdr = csv::Reader::from_reader(string.as_bytes());
+    let mut rdr = csv::Reader::from_reader(std_file);
     rdr.set_headers(csv::StringRecord::from(vec![
-        "date", "open", "high", "low", "close", "volume",
+            "date", "open", "high", "low", "close", "volume",
     ]));
 
     let records = rdr
         .deserialize()
         .filter_map(|r| match r {
-            Ok(record) => {
-                println!("Valid Record: {:?}", record);
-                Some(record)
-            },
+            Ok(record) => Some(record),
             Err(why) => {
                 eprintln!(
                     "Failed to read record for {}: {:?}",
@@ -103,7 +91,7 @@ async fn load_file(symbol: String, path: &std::path::Path) -> Result<(String, Ve
                 None
             }
         })
-        .collect::<Vec<_>>();
+    .collect::<Vec<_>>();
 
     Ok((symbol.to_string(), records))
 }
@@ -116,7 +104,7 @@ mod tests {
     async fn test_load_csv() {
         let result = load_file("AAPL".to_string(), std::path::Path::new("./test.csv")).await;
         assert!(result.is_ok());
-        let (symbol,records) = result.unwrap();
+        let (symbol,_records) = result.unwrap();
 
         assert_eq!(symbol, "AAPL".to_string());
     }
