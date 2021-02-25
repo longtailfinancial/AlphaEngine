@@ -25,6 +25,10 @@ def worst_drawdown(strawbroom):
     return drawdown(np.min(strawbroom, axis=0))
 
 
+def sharpe(returns):
+    return np.mean(returns) / np.std(returns)
+
+
 def confidence_bands(strawbroom, deviations=2):
     mean = np.mean(strawbroom, axis=0)
     std = np.std(strawbroom, axis=0)
@@ -34,8 +38,8 @@ def confidence_bands(strawbroom, deviations=2):
 
     return upper, lower
 
-
 def alpha(asset, strategy):
+    """Compared buy and hold to the strategy. Positive alpha is good. Negative is bad."""
     up = asset['forward_returns'][asset['forward_returns'] > 0]
     down = asset['forward_returns'][asset['forward_returns'] < 0]
     bh_alpha = np.sum(up) / np.abs(np.sum(down))
@@ -45,5 +49,37 @@ def alpha(asset, strategy):
     down = strat_returns[strat_returns < 0]
     strat_alpha = np.sum(up) / np.abs(np.sum(down))
 
-    alpha = (strat_alpha / bh_alpha) - 1
-    return alpha
+    _alpha = (strat_alpha / bh_alpha) - 1
+    return _alpha
+
+
+def ecdf(data):
+    """Compute ECDF for a one-dimensional array of measurements."""
+    # Number of data points: n
+    n = (len(data))
+
+    # x-data for the ECDF: x
+    x = np.sort(data)
+
+    # y-data for the ECDF: y
+    y = np.arange(1, n+1) / n
+
+    return x, y
+
+
+def time_in_market(strategy):
+    return np.sum(strategy.astype(int)) / len(strategy)
+
+
+def volatility_efficiency(asset, strategy):
+    """Determines how effective the strategy is and how it
+    would perform if leveraged to the same risk as buy and hold"""
+    perf = performance(asset, strategy)
+    strat_perf = np.cumsum(perf)
+
+    buy_hold_perf = np.cumsum(asset['forward_returns'])
+
+    strat_v_bh = strat_perf[-1] / buy_hold_perf[-1]
+
+    return strat_v_bh / time_in_market(strategy)
+
