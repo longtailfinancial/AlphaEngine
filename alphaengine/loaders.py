@@ -40,11 +40,17 @@ class FileInstrument:
         return [date.day, date.month, date.year, o, h, l, c, v]
 
     def attach_feature(self, feature, name):
-        self.column_set.add(name)  # this will fail if the feature already exists
+        assert name not in self.column_set, f'Feature named "{name}" already exists!'
+
+        self.column_set.add(name)
         self.column_names.append(name)
 
         f = np.expand_dims(feature, axis=1)
         self.data = np.hstack((self.data, f))
+
+    @property
+    def features(self):
+        return self.column_names
 
     def __getitem__(self, key):
         if type(key) == str:
