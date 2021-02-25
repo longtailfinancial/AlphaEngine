@@ -1,5 +1,8 @@
 import numpy as np
 
+Z_SCORE_TENTHS = np.arange(6.9, step=0.1) - 3.4
+Z_SCORE_HUNDREDTHS = np.arange(6.9, step=0.01) - 3.4
+
 
 def rolling_window(a, window_size):
     shape = (a.shape[0] - window_size + 1, window_size) + a.shape[1:]
@@ -12,6 +15,28 @@ def aggregate(func, feature, window_size=1):
     return func(rolling_window(feature, window_size=window_size), axis=1)
 
 
+def mean(feature, window_size=1):
+    return aggregate(np.mean, feature, window_size)
+
+
+def std(feature, window_size=1):
+    return aggregate(np.std, feature, window_size)
+
+
+def z_score(feature, window_size=1):
+    _std = std(feature, window_size)
+    _mean = mean(feature, window_size)
+    return (feature - _mean) / _std
+
+
+def generate_strategies(feature, gt=True, z_score_table=Z_SCORE_TENTHS):
+    if gt:
+        return np.stack([np.greater(feature, z_score_table[i]) for i in range(len(z_score_table))])
+    else:
+        return np.stack([np.less(feature, z_score_table[i]) for i in range(len(z_score_table))])
+
+
+# AUX FUNCTIONS
 def sum(feature, window_size=1):
     return aggregate(np.sum, feature, window_size)
 
@@ -22,14 +47,6 @@ def median(feature, window_size=1):
 
 def average(feature, window_size=1):
     return aggregate(np.average, feature, window_size)
-
-
-def mean(feature, window_size=1):
-    return aggregate(np.mean, feature, window_size)
-
-
-def std(feature, window_size=1):
-    return aggregate(np.std, feature, window_size)
 
 
 def var(feature, window_size=1):
@@ -46,9 +63,3 @@ def maximum(feature, window_size=1):
 
 def diff(feature, window_size=1):
     return np.diff(feature, n=window_size, prepend=feature[0])
-
-
-def z_score(feature, window_size=1):
-    _std = std(feature, window_size)
-    _mean = mean(feature, window_size)
-    return (feature - _mean) / _std
