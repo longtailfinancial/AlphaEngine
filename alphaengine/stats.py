@@ -38,6 +38,7 @@ def confidence_bands(strawbroom, deviations=2):
 
     return upper, lower
 
+
 def alpha(asset, strategy):
     """Compared buy and hold to the strategy. Positive alpha is good. Negative is bad."""
     up = asset['forward_returns'][asset['forward_returns'] > 0]
@@ -48,6 +49,21 @@ def alpha(asset, strategy):
     up = strat_returns[strat_returns > 0]
     down = strat_returns[strat_returns < 0]
     strat_alpha = np.sum(up) / np.abs(np.sum(down))
+
+    _alpha = (strat_alpha / bh_alpha) - 1
+    return _alpha
+
+
+def vectorized_alpha(asset, strategies):
+    """Compared buy and hold to the strategy. Positive alpha is good. Negative is bad."""
+    up = asset['forward_returns'][asset['forward_returns'] > 0]
+    down = asset['forward_returns'][asset['forward_returns'] < 0]
+    bh_alpha = np.sum(up) / np.abs(np.sum(down))
+
+    strat_returns = asset['forward_returns'][:, np.newaxis].T * strategies
+    up = strat_returns * (strat_returns[:, ] > 0)
+    down = strat_returns * (strat_returns[:, ] < 0)
+    strat_alpha = np.sum(up, axis=1) / np.abs(np.sum(down, axis=1))
 
     _alpha = (strat_alpha / bh_alpha) - 1
     return _alpha
@@ -83,3 +99,15 @@ def volatility_efficiency(asset, strategy):
 
     return strat_v_bh / time_in_market(strategy)
 
+
+def vectorized_volatility_efficiency(asset, strategy):
+    """Determines how effective the strategy is and how it
+    would perform if leveraged to the same risk as buy and hold"""
+    perf = performance(asset, strategy)
+    strat_perf = np.cumsum(perf, axis=1)
+
+    buy_hold_perf = np.cumsum(asset['forward_returns'])
+
+    strat_v_bh = strat_perf[:, -1] / buy_hold_perf[-1]
+
+    return strat_v_bh / (np.sum(strategy.astype(int), axis=1) / strategy.shape[1])
