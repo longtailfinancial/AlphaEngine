@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-
+from . import transforms
 
 def monte_carlo(asset, strategy, samples=1000, simulations=1000):
     returns = asset['forward_returns'][strategy]
@@ -130,3 +130,10 @@ def plot_backtest(asset, strategy):
     performance = strategy.astype(int) * asset
     plt.plot(np.cumsum(performance))
     plt.plot(np.cumsum(asset['forward_returns']))
+
+
+def explore_feature(feature, returns, window_size=50):
+    z = transforms.z_score(feature, window_size=window_size)
+    strats = transforms.generate_strategies(z)
+    v = vectorized_volatility_efficiency(returns, strats)
+    return v, strats
