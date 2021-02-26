@@ -100,14 +100,19 @@ def volatility_efficiency(asset, strategy):
     return strat_v_bh / time_in_market(strategy)
 
 
-def vectorized_volatility_efficiency(asset, strategy):
+def vectorized_volatility_efficiency(asset, strategy, min_tim=0.1):
     """Determines how effective the strategy is and how it
     would perform if leveraged to the same risk as buy and hold"""
-    perf = performance(asset, strategy)
+    min_trades = int(len(asset['forward_returns']) * min_tim)
+    _strategy = strategy * (np.sum(strategy.astype(int), axis=1)[:, np.newaxis] > min_trades)
+
+    perf = performance(asset, _strategy)
     strat_perf = np.cumsum(perf, axis=1)
 
     buy_hold_perf = np.cumsum(asset['forward_returns'])
 
     strat_v_bh = strat_perf[:, -1] / buy_hold_perf[-1]
 
-    return strat_v_bh / (np.sum(strategy.astype(int), axis=1) / strategy.shape[1])
+    vol_effs = strat_v_bh / (np.sum(_strategy.astype(int), axis=1) / _strategy.shape[1])
+
+    return np.nan_to_num(vol_effs)
