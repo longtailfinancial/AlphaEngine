@@ -1,4 +1,5 @@
 import numpy as np
+import matplotlib.pyplot as plt
 
 
 def monte_carlo(asset, strategy, samples=1000, simulations=1000):
@@ -116,3 +117,16 @@ def vectorized_volatility_efficiency(returns, strategy, min_tim=0.1):
     vol_effs = strat_v_bh / (np.sum(_strategy.astype(int), axis=1) / _strategy.shape[1])
 
     return np.nan_to_num(vol_effs)
+
+
+def plot_strat_monte_carlo(asset, strategy):
+    mc = monte_carlo(asset, strategy)
+    vanilla = monte_carlo(asset, np.random.choice([True, False], size=len(asset[:, 0]), p=[1, 0]))
+    plt.hist(vanilla[:, -1], bins=50)
+    plt.hist(mc[:, -1], bins=50)
+
+
+def plot_backtest(asset, strategy):
+    performance = strategy.astype(int) * asset
+    plt.plot(np.cumsum(performance))
+    plt.plot(np.cumsum(asset['forward_returns']))
