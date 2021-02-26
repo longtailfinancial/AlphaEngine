@@ -11,8 +11,8 @@ def monte_carlo(asset, strategy, samples=1000, simulations=1000):
     return strawbroom
 
 
-def performance(asset, strategy):
-    return strategy.astype(int) * asset['forward_returns']
+def performances(returns, strategies):
+    return strategies.astype(int) * returns
 
 
 # Takes an individual set of returns and returns the cumulative drawdown
@@ -90,7 +90,7 @@ def time_in_market(strategy):
 def volatility_efficiency(asset, strategy):
     """Determines how effective the strategy is and how it
     would perform if leveraged to the same risk as buy and hold"""
-    perf = performance(asset, strategy)
+    perf = performances(asset, strategy)
     strat_perf = np.cumsum(perf)
 
     buy_hold_perf = np.cumsum(asset['forward_returns'])
@@ -100,16 +100,16 @@ def volatility_efficiency(asset, strategy):
     return strat_v_bh / time_in_market(strategy)
 
 
-def vectorized_volatility_efficiency(asset, strategy, min_tim=0.1):
+def vectorized_volatility_efficiency(returns, strategy, min_tim=0.1):
     """Determines how effective the strategy is and how it
     would perform if leveraged to the same risk as buy and hold"""
-    min_trades = int(len(asset['forward_returns']) * min_tim)
+    min_trades = int(len(returns) * min_tim)
     _strategy = strategy * (np.sum(strategy.astype(int), axis=1)[:, np.newaxis] > min_trades)
 
-    perf = performance(asset, _strategy)
+    perf = performances(returns, _strategy)
     strat_perf = np.cumsum(perf, axis=1)
 
-    buy_hold_perf = np.cumsum(asset['forward_returns'])
+    buy_hold_perf = np.cumsum(returns)
 
     strat_v_bh = strat_perf[:, -1] / buy_hold_perf[-1]
 
