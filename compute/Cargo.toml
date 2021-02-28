@@ -1,0 +1,6 @@
+[workspace]
+members = [
+"python_binding",
+"compute_kernel",
+"loader"
+]
