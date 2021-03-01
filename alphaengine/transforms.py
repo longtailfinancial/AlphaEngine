@@ -11,6 +11,11 @@ def rolling_window(a, window_size):
     return np.vstack((x, np.lib.stride_tricks.as_strided(a, shape=shape, strides=strides)))
 
 
+def tn_returns(asset, n=5):
+    x = rolling_window(asset['forward_returns'], window_size=n+1)
+    return x[:, -1]-x[:, 0]
+
+
 def aggregate(func, feature, window_size=1):
     return func(rolling_window(feature, window_size=window_size), axis=1)
 
